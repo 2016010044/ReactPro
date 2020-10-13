@@ -1,0 +1,31 @@
+1.关于  打包问题、按需加载问题
+在login时，怎么页面样式都不行，首先yarn add react-app-rewired    接着在packjson中的script中进行配置如下：
+"scripts": {
+    "start": "react-scriptsstart",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+替换为
+"scripts": {
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
+    "eject": "react-scripts eject"
+  },
+原因是我们要借助这个东西打包，将这个css等转换为能够识别到的，接着在根目录下创建一个config-overrides.js，要用到antd按需加载，所以yarn add babel-plugin-import ,接着下面内容为：
+const {override, fixBabelImports} = require('customize-cra');
+
+// - module.exports = function override(config, env) {
+//     -   // do stuff with the webpack config...
+//         -   return config;
+//     - };
+module.exports = override(
+    fixBabelImports('antd', {
+        libraryDirectory: 'es',
+        style: 'css',
+    }),
+);
+接着需要yarn add  一下customize-cra
+
+2.在配置中文时，需要在index（全局配置）中配置ConfigProvider，
