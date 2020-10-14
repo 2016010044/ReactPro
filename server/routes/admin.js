@@ -9,7 +9,8 @@ const jwt = require('jsonwebtoken');
 // 引入数据库查询函数
 const Query = require('./../config/dbHelper');
 const KEY = require('./../config/config').KEY;
-const {admin_up} =require('./../controller/managerApi/uploadImg')
+
+const {admin_up} = require('../controller/managerApi/uploadFile');
 
 // 注册主管理员的接口
 /*
@@ -61,17 +62,20 @@ router.post('/login', (req, res, next)=>{
     // 3. 查询数据库
     let sql = `SELECT * FROM t_admin WHERE account = ? AND password = ?;`;
     let value = [account, password];
+
+
     Query(sql, value).then((result)=>{
-        console.log(result);
         if(result.data.length > 0){
             const {id, account, password, account_name, account_icon} = result.data[0];
             //  3.1 生成一个token
             const userData = {id, account, password};
             const token = jwt.sign(userData, KEY);
-            console.log(token);
+            // console.log(token);
             // console.log(jwt.verify(token, KEY));
+
             // 3.2  把token存入session
             req.session.token = token;
+
             // 3.3 给客户端返回数据
             res.json({
                 status: 1,
@@ -83,6 +87,7 @@ router.post('/login', (req, res, next)=>{
                     account_icon
                 }
             })
+
         }else {
             res.json({
                 status: 0,
@@ -95,17 +100,18 @@ router.post('/login', (req, res, next)=>{
 
 });
 
-//退出登录
-router.get('/logout',(req,res,next)=>{
-    //方式1
-    req.session.cookie.maxAge=0;
-    //方式2
-    // req.session.destroy();
+// 退出登录
+router.get('/logout', (req, res, next)=>{
+    // 方式1
+    // req.session.cookie.maxAge = 0;
+    // 方式二
+    req.session.destroy();
     res.json({
-        status:1,
-        msg:'退出登录成功'
-    })
+        status: 1,
+        msg: '退出登录成功!'
+    });
 });
+
 // 上传管理员头像
 router.post('/upload_admin_icon', admin_up.single('admin_avatar'), (req, res, next)=>{
     res.json({
@@ -117,7 +123,7 @@ router.post('/upload_admin_icon', admin_up.single('admin_avatar'), (req, res, ne
     })
 });
 
-//修改用户信息
+// 修改管理员的数据
 router.post('/edit', (req, res, next)=>{
     const {token, account_name, account_icon} = req.body;
     // 1. 获取管理员对象
@@ -169,4 +175,6 @@ router.post('/reset_pwd', (req, res, next)=>{
         })
     }
 });
+
+
 module.exports = router;

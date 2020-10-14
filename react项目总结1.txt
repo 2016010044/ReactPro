@@ -1,0 +1,265 @@
+项目准备工作：
+先来介绍一下项目，本项目分为客户端，服务器端，后台管理系统。（其实客户端就是后台管理系统）
+首先设计数据库，这个数据库什么字段，什么表这儿就不介绍了，
+1.构建服务器，我们的后台用到的接口都需要在服务器中自己写，所以我们需要自己创建node服务器：
+express --view=ejs lkadmin
+cd lkadmin
+npm i
+npm start
+这样就是基于ejs模板创建的node服务器就已经好了。
+这里补充一下：
+ejs:利用普通的 JavaScript 代码生成 HTML 页面。
+--save-dev:生产环境中不需要，开发环境中用的到。也就是说安装一个东西，比如：npm i jquery --save-dev||-D就是在开发中用的到这个jQuery，但是在发布后，就用不到了。
+--save||-S:这个在开发环境中用的到，在发布后也用的到，例如项目在发布后还需要依赖jQuery这样的库。
+
+接着配置这个忽略文件.gitignore    然后将里面写上/node_modules，在下次上传的时候会胡罗node_modules的内容。
+接着配置nodemon:因为在开发环境下我们需要一个重新启动项目的工具：
+npm i -g nodemon
+然后在package.json文件中加上这句代码：
+“script”：{
+“dev”："nodemon ./bin/www"
+}
+下次启动服务器直接用nodemon来启动项目，这样在服务器端变化的时候，会重新启动服务器。
+npm run dev
+
+这里搭建服务器，用的是nunjucks，而不是ejs,二者是互斥的，所以要卸载ejs:
+npm uninstall --save ejs
+npm install nunjucks --save
+有了nunjucks后，我们重新搭建一个服务器：
+express --view=nunjucks lkdemo
+服务器搭建好后，需要配置一下，官方给出的配置是：
+const nunjucks=require('nunjucks');
+nunjucks.configure('views', {
+    autoescape: true,
+    express: app
+});
+接着在views目录下创建index.html文件，在routes下的index.js写上如下代码：
+app.get('/', function(req, res) {
+    res.render('index.html');
+});
+
+现在这个node服务器就可以跑起来了，接着来介绍一下前后端分离和基于服务器开发的区别：
+前面Vue 的项目就是前后端分离的，前端注重页面和渲染，数据都在后端，只需要调用接口就行。
+基于服务器就是本项目了，自己建立服务器，自己调用服务器接口，数据对于前端来说是可见的。
+
+再来说一下git中的打包步骤：
+git add .
+git commit -m .....
+git push
+git tag -a v1.0 -m "标记1.0版本"
+git push origin v1.0
+
+export:
+三种用法：
+1).export const str="jdfkf";
+2).var lastName = 'Jackson';
+export {lastName}
+3)export function multiply(x, y) {
+  return x * y;
+}
+切记：不能直接 export lastName
+export命令规定的是对外的接口，必须与模块内部的变量建立一一对应关系。也就是说用export 导出模块的时候，如果变量或函数提前定义好了导出是必须加 {}, 如果没有提前定义导出是必须以命名（定义的）的方式。
+
+exports和module.exports的理解：
+nodejs定义了一个类：Module，类中就有exports这个属性（对象）。
+function Module {
+  id : 'blabla',
+  exports : {},
+  blabla...
+}
+每次js在执行或者require的时候，就会实例化var module = new Module()，这就是为什么没有定义还能用module的原因。
+console.log(module)发现module中的exports他就是一个空对象，
+module.exports = {
+  let print=()=>{console.log(12345)}
+}
+console.log(module); //你会看到Module中的exports对象已经有了print()方法,
+
+再继续看一个例子：
+console.log(module); //你会看到Module中的exports为空对象{}
+console.log(exports); //你会看到Module中的exports为空对象{}
+module.exports = {
+  print : function(){console.log(12345)}
+}
+console.log(module); //你会看到Module中的exports对象有了print()方法
+exports.name = '小白妹妹';
+console.log(module); //你会看到Module中的exports对象不仅有了print()方法，还有了name属性
+由此也能看出，传说中的exports其实是module.exports的引用，你可以这么理解，NodeJS在你的代码之前悄悄的加了以下代码：
+var module = new Module();
+var exports = module.exports;
+所以在开发过程中exports是module.exports的一个引用。但还是需要注意以下内容：*********
+√你可以这样：
+module.exports.name = '小白妹妹';
+exports.age = 10;
+module.exports.print = function(){console.log(12345)};
+如果只是使用.来添加属性和方法，module.exports和exports混用是完全可以的，这种情况下，感觉exports就是给懒人用的…毕竟能少写几个7个字符呢！
+√也可以这样：
+module.exports = {
+name = '小白妹妹';
+};
+exports.age = 10;
+module.exports.print = function(){console.log(12345)};
+×但不可以这样：
+module.exports = {
+name = '小白妹妹';
+};
+exports = {age:10}; // exports现在是{age:10}这个对象的引用，不再是module.exports的引用了
+console.log(module); //你会看到Module的exports中只有name属性！！！
+×也不可以这样：
+exports.age = 10; 
+console.log(module); //你会看到Module的exports中多了age属性
+module.exports = {
+name = '小白妹妹';
+};
+//这里的原因是在使用了exports.age = 10;后，接着使用module.exports=对象，改变了module中的exports的指向
+console.log(module); //你会看到Module的exports中还是只有name属性！！！
+总结：
+改变exports的指向后所添加的exports.xxx都是无效的。因为require返回的只会是module.exports
+不能在使用了exports.xxx之后，改变module.exports的指向。因为exports.xxx添加的属性和方法并不存在于module.exports所指向的新对象中。
+对于要导出的属性，可以简单直接挂到exports对象上
+对于类，为了直接使导出的内容作为类的构造器可以让调用者使用new操作符创建实例对象，应该把构造函数挂到module.exports对象上，不要和导出属性值混在一起。
+
+
+require和import的理解：
+ES6标准发布后，module成为标准，标准使用是以export指令导出接口，以import引入模块。但是在我们一贯的node模块中，我们依然采用的是CommonJS规范，使用require引入模块，使用module.exports导出接口。
+require做什么事情呢，当require的时候，nodejs会到处去找，如果有就return module.exports里的东东。
+二者的区别：
+1）require是运行时加载，在运行的时候才去加载。
+    import是编译时加载，所以必须放在模块的头部。
+2）出现时间不同：
+require/exports	2009	CommonJS
+import/export	2015	ECMAScript2015（ES6）
+3）CommonJS 模块化方案 require/exports 是为服务器端开发设计的，实现同步加载
+4)用法不一样：
+const fs = require('fs')
+module.exports = fs
+
+import {readFile} from 'fs' //从 fs 导入 readFile 模块
+export default fs
+5）require的得到的结果可以是对象、数字、字符串等，require拿到什么，module.exports就得到什么。
+6）ES6之前出现了JS模块加载的法案，最主要是CommonJS和AMD规范。CommonJS前者主要应用于服务器，实现同步加载，如nodejs。AMD规范应用于浏览器，如requirejs,为异步加载。
+
+export与export default的区别以及需要注意事项：
+1.export与export default均可用于导出常量、函数、文件、模块等
+2.在一个文件或模块中，export、import可以有多个，export default仅有一个
+3.通过export方式导出，在导入时要加{ }，export default则不需要
+(1) 输出单个值，使用export default
+(2) 输出多个值，使用export
+(3) export default与普通的export不要同时使用
+
+2.express连接数据库：npm i mysql
+在服务器端目录下创建config目录/config.js和dbHelper.js:
+const config={
+ // 数据库信息配置
+    database: {
+        HOST:  'localhost', // 主机
+        PORT:  '3306', // 端口
+        USER:  'root', // MySQL认证的用户名
+        PASSWORD:  'lh110911', // MySQL认证的密码
+        DATABASE:  'itlikeedu' // 数据库
+    },
+     // 其它配置
+     // 私盐
+    KEY: 'iTlike@#*09221``~~---++===yyyjhh'
+}
+module.exports=config;
+
+dbHelper.js:
+// 1. 引入MySQL
+const mySQL = require('mysql');
+const dbConfig = require('./config').database;
+
+// 2. 创建数据库连接池
+const pool = mySQL.createPool({
+    host: dbConfig.HOST,
+    port: dbConfig.PORT,
+    user: dbConfig.USER,
+    password: dbConfig.PASSWORD,
+    database: dbConfig.DATABASE
+});
+
+// 3. 创建通用查询方法, 可以promise返回
+let Query = (sql, value)=>{
+    return new Promise((resolve, reject)=>{
+         // 3.1 建立连接查询
+        pool.getConnection((error, connection)=>{
+            // 3.2 连接失败
+            if(error){
+                reject({code: 0, data: error});
+            }
+            // 3.3 通过连接去查询数据库
+            connection.query(sql, value,  (error, results, fields) =>{
+                // 3.4 关闭连接
+                connection.release();
+
+                //  3.5 SQL语句执行失败
+                if (error) {
+                    reject({code: 0, data: error, msg: 'SQL语句执行失败!'});
+                }
+
+                // 3.5 返回SQL语句操作完成的结果
+                resolve({code: 1, data: results, msg: 'SQL语句执行成功!' });
+            });
+        });
+    });
+};
+
+module.exports=Query;
+
+测试是否连接成功：在接口中测试，在这个服务器的根目录下，有个routes文件夹，此文件夹下建立js文件：
+此处来拿admin.js举例。接着去app.js文件中添加代码：
+const adminRouter = require('./routes/admin');
+// 使用路由中间件
+app.use('/api/auth/admin', adminRouter);
+
+接着在admin.js文件中书写代码：
+const express = require('express');
+const router = express.Router();
+/**此处书写接口*/
+router.post('/reg', (req, res, next)=>{
+    // 1. 获取参数
+    const {account, password} = req.body;
+    const md5_password = md5(password, KEY);
+    console.log(account, md5_password);
+    // 2. 判断
+    if(!account || !password){
+        res.json({
+            status: 0,
+            msg: '用户名或密码不能为空!'
+        });
+    }
+    // 3. 插入数据库
+    let sql = `INSERT INTO t_admin(account, password) VALUES (?, ?)`;
+    let value = [account, md5_password];
+    Query(sql, value).then((result)=>{
+        res.json({
+            status: result.code,
+            msg: '注册主管理员账号成功!'
+        });
+    }).catch((error)=>{
+        res.json({
+            status: error.code,
+            msg: '注册主管理员账号失败!'
+        });
+    });
+});
+/**此处书写接口*/
+module.exports = router;
+上面这个接口就是注册管理员的接口，其中也包含了数据库的用法。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -8,8 +8,7 @@ const config = {
         DATABASE:  'itlikeedu' // 数据库
     },
      // 其它配置
+     // 私盐
     KEY: 'iTlike@#*09221``~~---++===yyyjhh'
-     // ....
 };
-
 module.exports = config;

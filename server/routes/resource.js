@@ -1,46 +1,47 @@
 const express = require('express');
 const router = express.Router();
 
-const {resource_file_up, resource_img_up} = require('./../controller/managerApi/uploadFile');
+const {resource_file_up, resource_img_up} = require('../controller/managerApi/uploadFile');
 const Query = require('./../config/dbHelper');
 
-
 // 多文件上传
-router.post('/upload_many_file', resource_file_up.array('resource_file'), (req, res, next) => {
+router.post('/upload_many_file', resource_file_up.array('resource_file', 10), function (req, res, next) {
     console.log(req.files);
     res.json({
         status: 1,
         data: {
-            url: '/uploads/resource/' + req.files[0].filename,
+            url: "uploads/resource/" + req.files[0].filename,
             name: req.files[0].originalname,
             uid: req.files[0].filename
         }
     })
 });
+
 // 获取所属分类
-router.get('/r_category', (req, res, next) => {
+router.get('/r_category', (req, res, next)=>{
     const sql = `SELECT * FROM t_resource_category;`;
-    Query(sql).then((result) => {
+    Query(sql).then((result)=>{
         res.json({
             status: result.code,
             data: result.data
         })
-    }).catch((error) => {
+    }).catch((error)=>{
         res.json({
             status: error.code,
             data: error.data
         })
     })
 });
+
 // 获取所属班级
-router.get('/r_classes', (req, res, next) => {
+router.get('/r_classes', (req, res, next)=>{
     const sql = `SELECT * FROM t_resource_classes;`;
-    Query(sql).then((result) => {
+    Query(sql).then((result)=>{
         res.json({
             status: result.code,
             data: result.data
         })
-    }).catch((error) => {
+    }).catch((error)=>{
         res.json({
             status: error.code,
             data: error.data
@@ -49,14 +50,14 @@ router.get('/r_classes', (req, res, next) => {
 });
 
 // 获取所属区域
-router.get('/r_area', (req, res, next) => {
+router.get('/r_area', (req, res, next)=>{
     const sql = `SELECT * FROM t_resource_area;`;
-    Query(sql).then((result) => {
+    Query(sql).then((result)=>{
         res.json({
             status: result.code,
             data: result.data
         })
-    }).catch((error) => {
+    }).catch((error)=>{
         res.json({
             status: error.code,
             data: error.data
@@ -65,14 +66,14 @@ router.get('/r_area', (req, res, next) => {
 });
 
 // 获取所属格式
-router.get('/r_format', (req, res, next) => {
+router.get('/r_format', (req, res, next)=>{
     const sql = `SELECT * FROM t_resource_format;`;
-    Query(sql).then((result) => {
+    Query(sql).then((result)=>{
         res.json({
             status: result.code,
             data: result.data
         })
-    }).catch((error) => {
+    }).catch((error)=>{
         res.json({
             status: error.code,
             data: error.data
@@ -81,22 +82,23 @@ router.get('/r_format', (req, res, next) => {
 });
 
 // 获取所属分类
-router.get('/r_meta', (req, res, next) => {
+router.get('/r_meta', (req, res, next)=>{
     const sql = `SELECT * FROM t_resource_meta;`;
-    Query(sql).then((result) => {
+    Query(sql).then((result)=>{
         res.json({
             status: result.code,
             data: result.data
         })
-    }).catch((error) => {
+    }).catch((error)=>{
         res.json({
             status: error.code,
             data: error.data
         })
     })
 });
+
 // 上传直播封面图和焦点图
-router.post('/upload_resource', resource_img_up.single('resource_upload_img'), (req, res, next) => {
+router.post('/upload_resource', resource_img_up.single('resource_upload_img'), (req, res, next)=>{
     res.json({
         status: 1,
         msg: '图片上传成功',
@@ -106,7 +108,6 @@ router.post('/upload_resource', resource_img_up.single('resource_upload_img'), (
     })
 });
 
-//添加资源
 // 添加资源
 router.post('/add', (req, res, next)=>{
     const {token, resource_name, resource_author, resource_publish_time, resource_content, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img} = req.body;
@@ -119,48 +120,50 @@ router.post('/add', (req, res, next)=>{
     }else {
         console.log(resource_content);
         if(resource_content && resource_content.length > 0){
-            let fileArr = [];
-            let fileTag = new Date().getTime();
-            resource_content.forEach(function (n, i) {
-                let _arr = [];
-                for(let m in n ){
-                    _arr.push(n[m]);
-                }
-                _arr.push(fileTag);
-                fileArr.push(_arr);
-            });
+             let fileArr = [];
+             let fileTag = new Date().getTime();
+             resource_content.forEach(function (n, i) {
+                 let _arr = [];
+                 for(let m in n ){
+                      _arr.push(n[m]);
+                 }
+                 _arr.push(fileTag);
+                 fileArr.push(_arr);
+             });
 
-            console.log(fileArr);
+             console.log(fileArr);
 
-            // 执行插入操作
-            let sql = `INSERT INTO t_resource_file(url, name, uid, tag) VALUES ?`;
-            Query(sql, [fileArr]).then((result)=>{
-                console.log(result);
-                const sql1 = `INSERT INTO t_resource(resource_name, resource_author, resource_publish_time, resource_content, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img) VALUES (?,?,?,?,?,?,?,?,?,?,?,?);`;
-                const value = [ resource_name, resource_author, resource_publish_time, fileTag, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img];
-                Query(sql1, value).then((result)=>{
-                    res.json({
-                        status: result.code,
-                        msg: '新增资源成功!',
-                        data: {}
-                    })
-                }).catch((error)=>{
-                    console.log(error);
-                    res.json({
-                        status: error.code,
-                        data: error.data
-                    })
-                })
-            }).catch((error)=>{
-                console.log(error);
-                res.json({
-                    status: error.code,
-                    data: error.data
-                })
-            })
-        }
+             // 执行插入操作
+             let sql = `INSERT INTO t_resource_file(url, name, uid, tag) VALUES ?`;
+             Query(sql, [fileArr]).then((result)=>{
+                 console.log(result);
+                 const sql1 = `INSERT INTO t_resource(resource_name, resource_author, resource_publish_time, resource_content, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img) VALUES (?,?,?,?,?,?,?,?,?,?,?,?);`;
+                 const value = [ resource_name, resource_author, resource_publish_time, fileTag, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img];
+                 Query(sql1, value).then((result)=>{
+                     res.json({
+                         status: result.code,
+                         msg: '新增资源成功!',
+                         data: {}
+                     })
+                 }).catch((error)=>{
+                     console.log(error);
+                     res.json({
+                         status: error.code,
+                         data: error.data
+                     })
+                 })
+             }).catch((error)=>{
+                 console.log(error);
+                 res.json({
+                     status: error.code,
+                     data: error.data
+                 })
+             })
+         }
     }
 });
+
+
 // 获取资源;列表
 router.get('/list', (req, res, next)=>{
     // 1. 获取页码和页数
@@ -258,26 +261,26 @@ router.get('/file_list', (req, res, next)=>{
 });
 
 // 修改一条资源
-router.post('/edit', (req, res, next)=> {
-    const {token, resource_id, resource_name, resource_author, resource_publish_time, resource_content, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price, focus_img, resource_content_tag} = req.body;
+router.post('/edit', (req, res, next)=>{
+    const {token, resource_id, resource_name, resource_author, resource_publish_time, resource_content, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img, resource_content_tag} = req.body;
     console.log(req.body);
 
-    if (req.session.token !== token) {
+    if(req.session.token !== token){
         res.json({
             status: 0,
             msg: '非法用户!'
         });
-    } else {
+    }else {
         // 先删除, 后添加
-        if (resource_content && resource_content.length > 0) {
+        if(resource_content && resource_content.length > 0){
             let sql0 = `delete from t_resource_file where tag=?`;
-            Query(sql0, [resource_content_tag]).then((result) => {
-                // 删除成功, 添加
+            Query(sql0, [resource_content_tag]).then((result)=>{
+               // 删除成功, 添加
                 let fileArr = [];
                 let fileTag = resource_content_tag;
                 resource_content.forEach(function (n, i) {
                     let _arr = [];
-                    for (let m in n) {
+                    for(let m in n ){
                         _arr.push(n[m]);
                     }
                     _arr.push(fileTag);
@@ -285,17 +288,17 @@ router.post('/edit', (req, res, next)=> {
                 });
                 // 插入
                 let sql = `INSERT INTO t_resource_file(url, name, uid, tag) VALUES ?`;
-                Query(sql, [fileArr]).then((result) => {
-                    // 更新资源表
+                Query(sql, [fileArr]).then((result)=>{
+                     // 更新资源表
                     const sql = `UPDATE t_resource SET resource_name=?, resource_author=?, resource_publish_time=?, resource_content=?, resource_category_id=?, resource_classes_id=?, resource_area_id=?, resource_meta_id=?, resource_format_id=?, resource_img = ?, resource_price = ?, focus_img = ? WHERE id = ?;`;
-                    const value = [resource_name, resource_author, resource_publish_time, resource_content_tag, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price, focus_img, resource_id];
-                    Query(sql, value).then((result) => {
+                    const value = [resource_name, resource_author, resource_publish_time, resource_content_tag, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img, resource_id];
+                    Query(sql, value).then((result)=>{
                         res.json({
                             status: result.code,
                             msg: '修改活动成功!',
                             data: {}
                         })
-                    }).catch((error) => {
+                    }).catch((error)=>{
                         res.json({
                             status: error.code,
                             msg: '修改活动失败!',
@@ -303,7 +306,7 @@ router.post('/edit', (req, res, next)=> {
                         })
                     })
 
-                }).catch((error) => {
+                }).catch((error)=>{
                     console.log(error);
                     res.json({
                         status: error.code,
@@ -312,19 +315,20 @@ router.post('/edit', (req, res, next)=> {
                 })
 
 
-            }).catch((error) => {
+            }).catch((error)=>{
                 res.json({
                     status: error.code,
                     msg: 'SQL语句出现问题',
-                    data: {}
+                    data:{}
                 })
             });
-        } else {
+        }else {
             res.json({
-                status: 0,
-                msg: '上传的资源不能为空!'
+               status: 0,
+               msg: '上传的资源不能为空!'
             });
         }
     }
 });
+
 module.exports = router;

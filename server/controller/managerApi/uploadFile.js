@@ -30,10 +30,11 @@ function createUp(direct_path) {
 const admin_up = createUp(path.join(__dirname, '../../public/uploads/images/admin'));
 const live_img_up = createUp(path.join(__dirname, '../../public/uploads/images/live'));
 const activities_img_up = createUp(path.join(__dirname, '../../public/uploads/images/activities'));
-const life_job_img_up  = createUp(path.join(__dirname, '../../public/uploads/images/lifejob'));
-const resource_file_up  = createUp(path.join(__dirname, '../../public/uploads/resource'));
-const resource_img_up  = createUp(path.join(__dirname, '../../public/uploads/images/resource'));
-const home_img_up  = createUp(path.join(__dirname, '../../public/uploads/images/home'));
+const life_job_img_up = createUp(path.join(__dirname, '../../public/uploads/images/lifejob'));
+const resource_file_up = createUp(path.join(__dirname, '../../public/uploads/resource'));
+const resource_img_up = createUp(path.join(__dirname, '../../public/uploads/images/resource'));
+const home_img_up = createUp(path.join(__dirname, '../../public/uploads/images/home'));
+
 module.exports = {
     admin_up,
     live_img_up,

@@ -37,4 +37,4 @@ let Query = (sql, value)=>{
     });
 };
 
-module.exports = Query;
+module.exports=Query;
