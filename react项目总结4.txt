@@ -1,0 +1,784 @@
+幼教资源：
+1）幼教资源列表之添加
+render() {
+        // 添加按钮
+        let addBtn = (
+            <Button type={"primary"} onClick={() => {
+                this.props.history.push('/resource/add-resource');
+            }}>
+                添加幼教资源
+            </Button>
+        );
+
+        return (
+            <Card title={"幼教资源列表"} extra={addBtn}>
+                <Table
+                    columns={this.columns}
+                    dataSource={this.state.resourceList}
+                    rowKey={"id"}
+                    pagination={{
+                        total: this.state.totalSize,
+                        pageSize: this.state.pageSize,
+                        onChange: (pageNum, pageSize)=>{
+                            console.log('需要加载' + pageNum, pageSize);
+                            this._loadData(pageNum, pageSize)
+                        }
+                    }}
+                />
+            </Card>
+        )
+    }
+这儿用extra={addBtn}来使用添加资源，先来看一下添加资源：
+<Card title="新增幼教资源">
+                <Form  {...formItemLayout}  onFinish={onFinish}>
+                    <Form.Item
+                        label={"资源名称"}
+                        name="resource_name"
+                        rules={[{required: true, message: '请输入资源名称!'}]}
+                    >
+                        <Input/>
+                    </Form.Item>
+                    <Form.Item
+                        label={"资源作者"}
+                        name="resource_author"
+                        rules={[{required: true, message: '请输入作者姓名!'}]}
+                    >
+                        <Input/>
+                    </Form.Item>
+                    <Form.Item
+                        label="所属分类"
+                        name="resource_category_id"
+                        rules={[{required: true, message: '请选择所属分类!'}]}
+                    >
+                        <Select placeholder={"请选择所属分类"} style={{width: 200}}>
+                            {
+                                resource_category.map(item=>{
+                                    return (
+                                        <Option value={item.id} key={item.id}>{item.category_name}</Option>
+                                    )
+                                })
+                            }
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        label="所属班级"
+                        name="resource_classes_id"
+                        rules={[{required: true, message: '请选择所属班级!'}]}
+                    >
+                        <Select placeholder={"请选择所属班级"} style={{width: 200}}>
+                            {
+                                resource_classes.map(item=>{
+                                    return (
+                                        <Option value={item.id} key={item.id}>{item.classes_name}</Option>
+                                    )
+                                })
+                            }
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        label="所属领域"
+                        name="resource_area_id"
+                        rules={[{required: true, message: '请选择所属领域!'}]}
+                    >
+                        <Select placeholder={"请选择所属领域"} style={{width: 200}}>
+                            {
+                                resource_area.map(item=>{
+                                    return (
+                                        <Option value={item.id} key={item.id}>{item.area_name}</Option>
+                                    )
+                                })
+                            }
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        label="素材选择"
+                        name="resource_meta_id"
+                        rules={[{required: true, message: '请选择素材!'}]}
+                    >
+                        <Select placeholder={"请选择素材"} style={{width: 200}}>
+                            {
+                                resource_meta.map(item=>{
+                                    return (
+                                        <Option value={item.id} key={item.id}>{item.mate_name}</Option>
+                                    )
+                                })
+                            }
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        label="素材格式"
+                        name="resource_format_id"
+                        rules={[{required: true, message: '请选择素材格式!'}]}
+                    >
+                        <Select  placeholder={"请选择素材格式"} style={{width: 200}}>
+                            {
+                                resource_format.map(item=>{
+                                    return (
+                                        <Option value={item.id} key={item.id}>{item.format_name}</Option>
+                                    )
+                                })
+                            }
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        label={"资源价格"}
+                        name="resource_price"
+                        rules={[{required: true, message: '请输入资源的价格!'}]}
+                    >
+                        <Input style={{width: 120}}/>
+                    </Form.Item>
+                    <Form.Item
+                        label={"资源封面图"}
+                        name="resource_img"
+                    >
+                        <LikeUploadImg
+                            upLoadBtnTitle={"上传资源封面图"}
+                            upLoadName={"resource_upload_img"}
+                            upLoadAction={"/api/auth/resource/upload_resource"}
+                            successCallBack={(name) => {
+                                this.setState({
+                                    imageUrl: name
+                                })
+                            }}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        label={"首页轮播图"}
+                        name="focus_img"
+                    >
+                        <LikeUploadImg
+                            upLoadBtnTitle={"上传首页焦点图"}
+                            upLoadName={"resource_upload_img"}
+                            upLoadAction={"/api/auth/resource/upload_resource"}
+                            successCallBack={(name) => {
+                                this.setState({
+                                    focusImgUrl: name
+                                })
+                            }}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        label={"幼教资源"}
+                        name="resource_content"
+                    >
+                        <Upload.Dragger
+                            name='resource_file'
+                            multiple={true}
+                            action={'/api/auth/resource/upload_many_file'}
+                            onChange={(info) => {
+                                const {status} = info.file;
+                                if (status !== 'uploading') {
+                                    // console.log(info.file, info.fileList);
+                                }
+                                if (status === 'done') {
+                                    if (info.file.response && info.file.response.status === 1) {
+                                        /*
+                                        console.log(`-----------------`);
+                                        console.log(info.file.response.data);
+                                        console.log(`-----------------`);
+                                        */
+
+                                        let tempArr = this.state.dragFileList;
+                                        tempArr.push(info.file.response.data);
+                                        this.setState({
+                                            dragFileList: tempArr
+                                        }, () => {
+                                            console.log(this.state.dragFileList);
+                                        })
+                                    }
+                                    message.success(`${info.file.name} 文件上传成功!`);
+                                } else if (status === 'error') {
+                                    message.error(`${info.file.name} 文件上传失败!`);
+                                }
+                            }}
+                            onRemove={(file) => {
+                                console.log(file);
+                                let tempArr = this.state.dragFileList;
+                                let newTempArr = [];
+                                for (let i = 0; i < tempArr.length; i++) {
+                                    if (tempArr[i].uid !== file.response.data.uid) {
+                                        newTempArr.push(tempArr[i]);
+                                    }
+                                }
+                                // 更新状态
+                                this.setState({
+                                    dragFileList: newTempArr
+                                }, () => {
+                                    console.log(this.state.dragFileList);
+                                })
+                            }}
+                        >
+                            <p className="ant-upload-drag-icon">
+                                <InboxOutlined/>
+                            </p>
+                            <p className="ant-upload-text">单击或者拖到文件到此区域上传</p>
+                            <p className="ant-upload-hint">支持单个或多上文件上传</p>
+                        </Upload.Dragger>
+                    </Form.Item>
+                    <Form.Item
+                        wrapperCol={{span: 16}}
+                    >
+                        <div style={{textAlign: 'center', marginTop: 30}}>
+                            <Button type={"primary"} htmlType={"submit"} style={{marginRight: 15}}>保存</Button>
+                            <Button onClick={() => {
+                                this.props.history.goBack()
+                            }}>取消</Button>
+                        </div>
+                    </Form.Item>
+                </Form>
+            </Card>
+代码有点多，但要从页面讲起，就必须要有代码：
+所属分类：这里的resource_category是通过接口请求到的数据然后遍历，这里的name值要与数据库中一样。接口：
+router.get('/r_category', (req, res, next)=>{
+    const sql = `SELECT * FROM t_resource_category;`;
+    Query(sql).then((result)=>{
+        res.json({
+            status: result.code,
+            data: result.data
+        })
+    }).catch((error)=>{
+        res.json({
+            status: error.code,
+            data: error.data
+        })
+    })
+});
+下面的所属班级到素材选择都是同理，好了，接着就是单击或者拖动文件上传（支持单个和多个）：multiple就是是否支持多选文件，dragFileList存放多文件，接口：
+router.post('/upload_many_file', resource_file_up.array('resource_file', 10), function (req, res, next) {
+    console.log(req.files);
+    res.json({
+        status: 1,
+        data: {
+            url: "uploads/resource/" + req.files[0].filename,
+            name: req.files[0].originalname,
+            uid: req.files[0].filename
+        }
+    })
+});
+接着就点击按钮提交或者取消了，点击取消按钮直接返回这列表，点击提交后发生一系列事情再到列表页面：
+const onFinish = values => {
+            const {imageUrl, focusImgUrl, dragFileList} = this.state;
+            if(!imageUrl){
+                message.warning('请上传资源封面!');
+                return;
+            }
+
+            // 1. 生成创建日期
+            const resource_publish_time = Moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
+
+
+            // 2. 上传资源
+            /*
+              token, resource_name, resource_author, resource_publish_time, resource_content, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img
+            */
+            addResource(getUser().token, values.resource_name, values.resource_author, resource_publish_time, dragFileList, values.resource_category_id, values.resource_classes_id, values.resource_area_id,values.resource_meta_id, values.resource_format_id, imageUrl, values.resource_price,  focusImgUrl).then((result)=>{
+                if(result && result.status === 1){
+                    message.success(result.msg);
+                    this.props.history.goBack();
+                }
+            }).catch(()=>{
+                message.error('添加直播课失败!');
+            })
+        };
+接口：
+router.post('/add', (req, res, next)=>{
+    const {token, resource_name, resource_author, resource_publish_time, resource_content, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img} = req.body;
+    console.log(req.body);
+    if(req.session.token !== token){
+        res.json({
+            status: 0,
+            msg: '非法用户!'
+        });
+    }else {
+        console.log(resource_content);
+        if(resource_content && resource_content.length > 0){
+             let fileArr = [];
+             let fileTag = new Date().getTime();
+             resource_content.forEach(function (n, i) {
+                 let _arr = [];
+                 for(let m in n ){
+                      _arr.push(n[m]);
+                 }
+                 _arr.push(fileTag);
+                 fileArr.push(_arr);
+             });
+
+             console.log(fileArr);
+
+             // 执行插入操作
+             let sql = `INSERT INTO t_resource_file(url, name, uid, tag) VALUES ?`;
+             Query(sql, [fileArr]).then((result)=>{
+                 console.log(result);
+                 const sql1 = `INSERT INTO t_resource(resource_name, resource_author, resource_publish_time, resource_content, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img) VALUES (?,?,?,?,?,?,?,?,?,?,?,?);`;
+                 const value = [ resource_name, resource_author, resource_publish_time, fileTag, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img];
+                 Query(sql1, value).then((result)=>{
+                     res.json({
+                         status: result.code,
+                         msg: '新增资源成功!',
+                         data: {}
+                     })
+                 }).catch((error)=>{
+                     console.log(error);
+                     res.json({
+                         status: error.code,
+                         data: error.data
+                     })
+                 })
+             }).catch((error)=>{
+                 console.log(error);
+                 res.json({
+                     status: error.code,
+                     data: error.data
+                 })
+             })
+         }
+    }
+});
+
+2）幼教资源列表展示：
+加载数据列表：
+ componentDidMount() {
+        // 加载列表数据
+        this._loadData();
+    }
+ _loadData = (page_num=1, page_size=4)=>{
+        getResourceList(page_num, page_size).then((result)=>{
+            if(result && result.status === 1){
+                console.log(result);
+                message.success(result.msg);
+                this.setState({
+                    totalSize: result.data.resource_count,
+                    resourceList: result.data.resource_list
+                })
+            }
+        }).catch(()=>{
+            message.error('获取资源列表失败!');
+        })
+    };
+接口：
+router.get('/list', (req, res, next)=>{
+    // 1. 获取页码和页数
+    let pageNum = req.query.page_num || 1;
+    let pageSize = req.query.page_size || 4;
+
+    let sql1 = `SELECT COUNT(*) as resource_count FROM t_resource;`;
+    let sql2 = `SELECT t_resource.* , t_resource_category.category_name FROM t_resource LEFT JOIN t_resource_category ON t_resource.resource_category_id = t_resource_category.id limit ${(pageNum - 1)*pageSize}, ${pageSize}`;
+
+    // 执行SQL
+    Query(sql1).then((result1)=>{
+        Query(sql2).then((result)=>{
+            res.json({
+                status: result.code,
+                msg: '获取资源列表成功!',
+                data: {
+                    resource_count: result1.data[0].resource_count,
+                    resource_list: result.data
+                }
+            })
+        }).catch((error)=>{
+            res.json({
+                status: error.code,
+                msg: '获取资源列表失败!',
+                data: error.data
+            })
+        })
+    })
+});
+columns:
+columns = [
+        {title: 'ID', dataIndex: 'id', key: 'id', width: 50, align: 'center'},
+        {title: '幼教标题', dataIndex: 'resource_name', key: 'resource_name',align: 'center'},
+        {
+            title: '幼教封面', dataIndex: 'resource_img', key: 'resource_img',align: 'center',
+            render: (text, record) => {
+                console.log(text,record)
+                return (
+                    <img src={config.BASE_URL + record.resource_img} alt="课程封面" width={100}/>
+                )
+            }
+        },
+        {title: '所属作者', dataIndex: 'resource_author', key: 'resource_author',align: 'center'},
+        {title: '所属分类', dataIndex: 'category_name',key: 'category_name', align: 'center'},
+        {
+            title: '首页焦点', dataIndex: 'is_focus', key: 'is_focus',align: 'center',
+            render: (text, record) => {
+                return (
+                    <Switch
+                        checkedChildren="是"
+                        unCheckedChildren= "否"
+                        disabled={record.focus_img.length === 0}
+                        defaultChecked={record.is_focus === 1}
+                        onChange={(checked)=>{
+                            setFocusResource(record.id, checked ? 1 : 0).then((result)=>{
+                                if(result && result.status === 1){
+                                    notification["success"]({
+                                        message: `课程: ${record.resource_name}`,
+                                        description: `${checked ? '设置为' : '取消'}焦点活动!`
+                                    });
+                                }
+                            })
+                        }}
+                    />
+                )
+            }
+        },
+        {
+            title: '操作', align: 'center',
+            render: (text, record) => {
+                return (
+                    <div>
+                        <Button onClick={()=>{
+                            this.props.history.push({
+                                pathname: '/resource/edit-resource',
+                                state:{
+                                    resource: record
+                                }
+                            });
+                        }}>编辑</Button>
+                        <Divider type="vertical" />
+                        <Button onClick={()=>{
+                            Modal.confirm({
+                               title: '确认删除吗?',
+                               content: '删除此资源,所有关联的内容都会被删除',
+                               okText: '确认',
+                               cancelText: '取消',
+                               onOk: ()=> {
+                                   deleteResource(record.id).then(result=>{
+                                       if(result && result.status === 1){
+                                           message.success(result.msg);
+                                           this._loadData();
+                                       }else {
+                                           message.error('删除失败!');
+                                       }
+                                   }).catch(()=>{
+                                       message.error('删除失败!');
+                                   })
+                               }
+                            });
+                        }}>删除</Button>
+                    </div>
+                )
+            }
+        },
+    ];
+这里有一个render: (text, record) => {}，text就是对应的图片或者是布尔值。record就是整个对象，里面包括了id等等一系列属性。接着就是首页焦点有一个Switch，checkedChildren是选中时内容，如果返回的对象中没有焦点图，那么它是禁用的状态。defaultChecked默认是1（代表选中）。当变化的时候,即点击切换的时候，会调用接口，去改变数据库is_focus的值，为1就是选中，为0不选中，接口如下：
+router.get('/set_focus_resource', (req, res, next)=>{
+    let id = req.query.id;
+    let isFocus = Number(req.query.is_focus) || 0;
+
+    let sql = `UPDATE t_resource SET is_focus = ? WHERE id = ?`;
+    let value = [isFocus, id];
+
+    // 执行SQL
+    Query(sql, value).then((result)=>{
+        res.json({
+            status: result.code,
+            msg: '更新成功!',
+            data: {}
+        })
+    }).catch((error)=>{
+        res.json({
+            status: error.code,
+            msg: '更新失败!',
+            data: error.data
+        })
+    })
+});
+界面会在调用的时候传一个record.id,即当前记录的id。这里用到一个提示消息的插件：notification，接着就是编辑和删除了。
+
+这儿补充一个遗漏的知识点：
+多文件存到的时候在数据库中存的只是一个tag,实际的内容都存到了t_resource_file这个表中，每次拿的时候根据，也就是说这个表的的tag是和t_resource的tag相对应。
+
+编辑这儿就将一下那个怎么进到编辑页面显示数据。其他实现和添加一样，只不过掉的接口不一样。编辑这儿通过这样拿到当前记录：resource: record
+componentDidMount() {
+        if(!this.props.location.state){
+            this.setState = ()=> false;
+            this.props.history.goBack();
+        }
+
+        // 0. 获取上一个界面传递的数据
+        if(this.props.location.state){
+            const resourceItem = this.props.location.state.resource;
+            if(resourceItem){
+                this.resourceFormRef.current.setFieldsValue(resourceItem);
+                // 封面图/轮播图/直播信息id
+                this.setState({
+                    imageUrl: resourceItem.resource_img, // 资源封面
+                    focusImgUrl: resourceItem.focus_img, // 轮播图封面
+                    resource_id: resourceItem.id,
+                    resource_content_tag: resourceItem.resource_content
+                });
+            }
+
+            // 1. 获取文件
+            getFileList(resourceItem.resource_content).then((result) => {
+                if (result && result.status === 1) {
+                    this.setState({
+                        dragFileList: result.data
+                    })
+                }
+            }).catch((error) => {
+                console.log(error);
+            });
+        }
+        getResourceClasses().then((result) => {
+            console.log(result);
+            if (result && result.status === 1) {
+                this.setState({
+                    resource_classes: result.data
+                })
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+
+        getResourceArea().then((result) => {
+            if (result && result.status === 1) {
+                this.setState({
+                    resource_area: result.data
+                })
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+
+        getResourceCategory().then((result) => {
+            if (result && result.status === 1) {
+                this.setState({
+                    resource_category: result.data
+                })
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+
+        getResourceFormat().then((result) => {
+            if (result && result.status === 1) {
+                this.setState({
+                    resource_format: result.data
+                })
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+
+        getResourceMeta().then((result) => {
+            if (result && result.status === 1) {
+                this.setState({
+                    resource_meta: result.data
+                })
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+    }
+通过this.props.location.state这句代码拿到上一界面的数据。
+然后拿到图片、轮播图封面，id,已经存在t_resource中文件的tag,接着通过tag去拿到文件。最终将文件存到dragFileList中，获取文件的接口：
+router.get('/file_list', (req, res, next)=>{
+    // 1. 获取tag
+    let tag = req.query.tag;
+    let sql = `SELECT url, name, uid FROM t_resource_file WHERE tag = ?`;
+
+    // 执行SQL
+    Query(sql, [tag]).then((result)=>{
+        res.json({
+            status: result.code,
+            msg: '获取文件列表成功!',
+            data: result.data
+        })
+    }).catch((error)=>{
+        res.json({
+            status: error.code,
+            msg: '获取资源列表失败!',
+            data: error.data
+        })
+    })
+});
+拿到图片后直接通过 upImage={imageUrl}这就是当前默认的，
+这里有句代码：
+this.resourceFormRef.current.setFieldsValue(resourceItem);这句代码就是获取到当前记录的数据显示。
+就剩下这个多个文件的显示了：
+<Form.Item
+                        label={"幼教资源"}
+                        name="resource_content"
+                    >
+                        <Upload.Dragger
+                            name='resource_file'
+                            multiple={true}
+                            fileList={this.state.dragFileList}
+                            action={'/api/auth/resource/upload_many_file'}
+                            onChange={(info) => {
+                                console.log(info);
+                                // 补: 官方漏洞
+                                this.setState({
+                                    dragFileList: info.fileList.slice()
+                                });
+
+                                const {status} = info.file;
+                                if (status !== 'uploading') {
+                                    // console.log(info.file, info.fileList);
+                                }
+                                if (status === 'done') {
+                                    if (info.file.response && info.file.response.status === 1) {
+                                        let tempArr = this.state.dragFileList;
+                                        let tempA = [];
+                                        for(let i=0; i<tempArr.length; i++){
+                                            if(!tempArr[i].response){
+                                                tempA.push(tempArr[i]);
+                                            }
+                                        }
+                                        tempArr = tempA;
+                                        tempArr.push(info.file.response.data);
+                                        this.setState({
+                                            dragFileList: tempArr
+                                        }, () => {
+                                            console.log(this.state.dragFileList);
+                                        })
+                                    }
+                                    message.success(`${info.file.name} 文件上传成功!`);
+                                } else if (status === 'error') {
+                                    message.error(`${info.file.name} 文件上传失败!`);
+                                }
+                            }}
+                            onRemove={(file) => {
+                                console.log(file);
+                                let tempArr = this.state.dragFileList;
+                                let newTempArr = [];
+                                for (let i = 0; i < tempArr.length; i++) {
+                                    if (tempArr[i].uid !== file.uid) {
+                                        newTempArr.push(tempArr[i]);
+                                    }
+                                }
+                                // 更新状态
+                                this.setState({
+                                    dragFileList: newTempArr
+                                }, () => {
+                                    console.log(this.state.dragFileList);
+                                })
+                            }}
+                        >
+                            <p className="ant-upload-drag-icon">
+                                <InboxOutlined/>
+                            </p>
+                            <p className="ant-upload-text">单击或者拖到文件到此区域上传</p>
+                            <p className="ant-upload-hint">支持单个或多上文件上传</p>
+                        </Upload.Dragger>
+                    </Form.Item>
+接着就是提交修改：
+const onFinish = values => {
+            const {imageUrl, focusImgUrl, dragFileList, resource_id, resource_content_tag} = this.state;
+            if(!imageUrl){
+                message.warning('请上传资源封面!');
+                return;
+            }
+
+            // 1. 生成创建日期
+            const resource_publish_time = Moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
+
+            // 2. 上传资源
+            editResource(getUser().token, resource_id, values.resource_name, values.resource_author, resource_publish_time, dragFileList, values.resource_category_id, values.resource_classes_id, values.resource_area_id,values.resource_meta_id, values.resource_format_id, imageUrl, values.resource_price,  focusImgUrl, resource_content_tag).then((result)=>{
+                console.log(result);
+                if(result && result.status === 1){
+                    message.success(result.msg);
+                    this.props.history.goBack();
+                }
+            }).catch((error)=>{
+                console.log(error);
+                message.error('编辑直播课失败!');
+            })
+        };
+修改的接口：
+router.post('/edit', (req, res, next)=>{
+    const {token, resource_id, resource_name, resource_author, resource_publish_time, resource_content, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img, resource_content_tag} = req.body;
+    console.log(req.body);
+
+    if(req.session.token !== token){
+        res.json({
+            status: 0,
+            msg: '非法用户!'
+        });
+    }else {
+        // 先删除, 后添加
+        if(resource_content && resource_content.length > 0){
+            let sql0 = `delete from t_resource_file where tag=?`;
+            Query(sql0, [resource_content_tag]).then((result)=>{
+               // 删除成功, 添加
+                let fileArr = [];
+                let fileTag = resource_content_tag;
+                resource_content.forEach(function (n, i) {
+                    let _arr = [];
+                    for(let m in n ){
+                        _arr.push(n[m]);
+                    }
+                    _arr.push(fileTag);
+                    fileArr.push(_arr);
+                });
+                // 插入
+                let sql = `INSERT INTO t_resource_file(url, name, uid, tag) VALUES ?`;
+                Query(sql, [fileArr]).then((result)=>{
+                     // 更新资源表
+                    const sql = `UPDATE t_resource SET resource_name=?, resource_author=?, resource_publish_time=?, resource_content=?, resource_category_id=?, resource_classes_id=?, resource_area_id=?, resource_meta_id=?, resource_format_id=?, resource_img = ?, resource_price = ?, focus_img = ? WHERE id = ?;`;
+                    const value = [resource_name, resource_author, resource_publish_time, resource_content_tag, resource_category_id, resource_classes_id, resource_area_id, resource_meta_id, resource_format_id, resource_img, resource_price,  focus_img, resource_id];
+                    Query(sql, value).then((result)=>{
+                        res.json({
+                            status: result.code,
+                            msg: '修改活动成功!',
+                            data: {}
+                        })
+                    }).catch((error)=>{
+                        res.json({
+                            status: error.code,
+                            msg: '修改活动失败!',
+                            data: error.data
+                        })
+                    })
+
+                }).catch((error)=>{
+                    console.log(error);
+                    res.json({
+                        status: error.code,
+                        data: error.data
+                    })
+                })
+
+
+            }).catch((error)=>{
+                res.json({
+                    status: error.code,
+                    msg: 'SQL语句出现问题',
+                    data:{}
+                })
+            });
+        }else {
+            res.json({
+               status: 0,
+               msg: '上传的资源不能为空!'
+            });
+        }
+    }
+});
+
+最后就是删除了，删除的接口：
+router.get('/delete_resource', (req, res, next)=>{
+    let id = req.query.id;
+    let sql = `DELETE FROM t_resource WHERE id=?`;
+    // 执行SQL
+    Query(sql, [id]).then((result)=>{
+        res.json({
+            status: result.code,
+            msg: '删除成功!',
+            data: {}
+        })
+    }).catch((error)=>{
+        res.json({
+            status: error.code,
+            msg: '删除失败!',
+            data: error.data
+        })
+    })
+});
+
+
+
+
+

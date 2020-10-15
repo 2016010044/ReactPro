@@ -1,0 +1,343 @@
+1.职场人生：
+1）展示列表
+添加：
+ let addBtn = (
+            <Button type={"primary"} onClick={() => {
+                // 往本地存储一个tag
+                saveObj('life_job_tag','add');
+                this.props.history.push('/lifejob/add-edit');
+            }}>
+                添加人生资源
+            </Button>
+        );
+这里实现的是在同一个文件中添加和修改，
+<Button onClick={()=>{
+                             // 往本地存储一个tag
+                             saveObj('life_job_tag','edit');
+                             this.props.history.push({
+                                 pathname: '/lifejob/add-edit',
+                                 state: {
+                                     job: record
+                                 }
+                             });
+                        }}>编辑</Button>
+add_edit_life.jsx:
+componentDidMount() {
+        // 0. 刷新页面处理
+        if(getObj('life_job_tag')==='edit' && !this.props.location.state){
+            this.setState = ()=> false;
+            this.props.history.goBack();
+        }
+
+        // 1. 获取上一个界面传递的数据
+        if(this.props.location.state){
+            const jobItem = this.props.location.state.job;
+            if(jobItem){
+                this.jobFormRef.current.setFieldsValue(jobItem);
+                this.setState({
+                    imageUrl: jobItem.job_img, // 资源封面
+                    focusImgUrl: jobItem.focus_img, // 轮播图封面
+                    job_id: jobItem.id,
+                    job_content: jobItem.job_content
+                })
+            }
+        }
+        getJobPre().then((result)=>{
+            if(result && result.status === 1){
+                this.setState({
+                    job_pre: result.data
+                })
+            }
+        }).catch((error)=>{
+            console.log(error);
+        });
+
+        getJobFamily().then((result)=>{
+            if(result && result.status === 1){
+                this.setState({
+                    job_family: result.data
+                })
+            }
+        }).catch((error)=>{
+            console.log(error);
+        });
+    }
+首先如果当前页是edit,并且没有数据传到编辑页面，就返回。
+接着就是接收上一界面传过来的数据，
+还是通过：
+constructor(props){
+        this.jobFormRef = React.createRef();
+    }
+this.jobFormRef.current.setFieldsValue(jobItem);
+ <Form  {...formItemLayout}  onFinish={onFinish} ref={this.jobFormRef}>
+这种方式给显示数据。
+ <Card title={getObj('life_job_tag') !== 'edit' ? "新增人生资源": "编辑人生资源"}>
+                <Form  {...formItemLayout}  onFinish={onFinish} ref={this.jobFormRef}>
+                    <Form.Item
+                        label={"人生名称"}
+                        name = "job_name"
+                        rules={[{ required: true, message: '请输入职场人生名称!' }]}
+                    >
+                        <Input />
+                    </Form.Item>
+                    <Form.Item
+                        label={"人生作者"}
+                        name = "job_author"
+                        rules={[{ required: true, message: '请输入作者姓名!' }]}
+                    >
+                        <Input />
+                    </Form.Item>
+                    <Form.Item
+                        label="学前所属分类"
+                        name="job_pre_edu_id"
+                        rules={[{ required: true, message: '请选择学前所属分类!' }]}
+                    >
+                        <Select placeholder={"请选择学前所属分类"} style={{width: 200}}>
+                            {
+                                job_pre && job_pre.map(item=>{
+                                    return (
+                                        <Option value={item.id} key={item.id}>{item.pre_edu_name}</Option>
+                                    )
+                                })
+                            }
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        label="所属家园分类"
+                        name="job_family_edu_id"
+                        rules={[{ required: true, message: '请选择所属家园分类!' }]}
+                    >
+                        <Select placeholder={"请选择所属家园分类"}   style={{width: 200}}>
+                            {
+                                job_family && job_family.map(item=>{
+                                    return (
+                                        <Option value={item.id} key={item.id}>{item.job_family_name}</Option>
+                                    )
+                                })
+                            }
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        label="人生封面图"
+                        name="job_img"
+                    >
+                        <LikeUploadImg
+                            upLoadBtnTitle={"上传封面图"}
+                            upLoadName={"job_img"}
+                            upImage={imageUrl}
+                            upLoadAction={"/api/auth/lifejob/upload_life_job"}
+                            successCallBack={(name)=>{
+                                this.setState({
+                                    imageUrl: name
+                                })
+                            }}
+                           />
+                    </Form.Item>
+                    <Form.Item
+                        label="焦点图"
+                        name="focus_img"
+                    >
+                        <LikeUploadImg
+                            upLoadBtnTitle={"上传焦点图"}
+                            upImage={focusImgUrl}
+                            upLoadName={"job_img"}
+                            upLoadAction={"/api/auth/lifejob/upload_life_job"}
+                            successCallBack={(name)=>{
+                                this.setState({
+                                    focusImgUrl: name
+                                })
+                            }}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        label="职场人生内容"
+                        name="job_content"
+                        wrapperCol={{span: 20}}
+                    >
+                        <RichTextEditor
+                            uploadName={'job_img'}
+                            uploadAction={'/api/auth/lifejob/upload_life_job'}
+                            htmlContent={job_content}
+                            ref={this.job_life_ref}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        wrapperCol={{span: 16}}
+                    >
+                        <div style={{textAlign: 'center', marginTop: 30}}>
+                            <Button type={"primary"} htmlType="submit" style={{marginRight: 15}}>
+                                {getObj('life_job_tag') !== 'edit' ? '添加' : '修改'}
+                            </Button>
+                            <Button onClick={()=>{this.props.history.goBack()}}>取消</Button>
+                        </div>
+                    </Form.Item>
+                </Form>
+            </Card>
+
+<Card title={getObj('life_job_tag') !== 'edit' ? "新增人生资源": "编辑人生资源"}>通过这种方式来判断是哪个页面。最后也通过： {getObj('life_job_tag') !== 'edit' ? '添加' : '修改'}来判断是哪个按钮。
+
+另外这儿集成了一个文本框：
+<Form.Item
+                        label="职场人生内容"
+                        name="job_content"
+                        wrapperCol={{span: 20}}
+                    >
+                        <RichTextEditor
+                            uploadName={'job_img'}
+                            uploadAction={'/api/auth/lifejob/upload_life_job'}
+                            htmlContent={job_content}
+                            ref={this.job_life_ref}
+                        />
+                    </Form.Item>
+在上面通过this.job_life_ref = React.createRef();与文本框绑定，在添加或者修改的时候就通过
+ let job_content = this.job_life_ref.current.getContent();拿到文本框内容，编辑中显示是通过：
+  if(this.props.location.state){
+            const jobItem = this.props.location.state.job;
+            if(jobItem){
+                this.jobFormRef.current.setFieldsValue(jobItem);
+                this.setState({
+                    imageUrl: jobItem.job_img, // 资源封面
+                    focusImgUrl: jobItem.focus_img, // 轮播图封面
+                    job_id: jobItem.id,
+                    job_content: jobItem.job_content
+                })
+            }
+        }与其他显示是一样的。
+
+RichTextEditor：
+import React from 'react'
+// 引入编辑器组件
+import BraftEditor from 'braft-editor'
+// 引入编辑器样式
+import 'braft-editor/dist/index.css'
+import { ContentUtils } from 'braft-utils'
+import {Upload} from 'antd'
+import PropTypes from 'prop-types'
+
+import config from './../config/config'
+
+export default class RichTextEdit extends React.Component {
+   static propTypes = {
+       uploadName: PropTypes.string.isRequired, // 上传的key
+       uploadAction: PropTypes.string.isRequired, // 上传图片的接口地址
+       htmlContent: PropTypes.string
+   };
+
+   componentWillReceiveProps(nextProps, nextContext) {
+       if(nextProps.htmlContent){
+           this.setState({
+               editorState: BraftEditor.createEditorState(nextProps.htmlContent)
+           })
+       }
+
+   }
+
+    state = {
+        // 创建一个空的editorState作为初始值
+        editorState: BraftEditor.createEditorState(null)
+    };
+
+    getContent = ()=>{
+       return this.state.editorState.toHTML();
+    };
+
+    submitContent = async () => {
+        // 在编辑器获得焦点时按下ctrl+s会执行此方法
+        // 编辑器内容提交到服务端之前，可直接调用editorState.toHTML()来获取HTML格式的内容
+        console.log(this.state.editorState.toHTML());
+    };
+
+    handleEditorChange = (editorState) => {
+        this.setState({ editorState })
+    };
+
+    editorControls = [
+        'undo', 'redo', 'separator',
+        'font-size', 'line-height', 'letter-spacing', 'separator',
+        'text-color', 'bold', 'italic', 'underline', 'strike-through', 'separator',
+        'superscript', 'subscript', 'remove-styles', 'emoji',  'separator', 'text-indent', 'text-align', 'separator',
+        'headings', 'list-ul', 'list-ol', 'blockquote', 'code', 'separator',
+        'link', 'separator', 'hr', 'separator', 'separator',
+        'clear'
+    ];
+
+    uploadHandler = (info) => {
+        if (info.file.status === 'uploading') {
+            return;
+        }
+
+        // 获取服务器返回的数据
+        if(info.file.response && info.file.status === 'done' && info.file.response.status === 1){
+            const name = info.file.response.data.name;
+            this.setState({
+                editorState: ContentUtils.insertMedias(this.state.editorState, [{
+                    type: 'IMAGE',
+                    url: config.BASE_URL + name
+                }])
+            })
+        }
+    };
+
+    extendControls = [
+        {
+            key: 'antd-uploader',
+            type: 'component',
+            component: (
+                <Upload
+                    name={this.props.uploadName}
+                    accept="image/*"
+                    action={this.props.uploadAction}
+                    showUploadList={false}
+                    onChange={this.uploadHandler}
+                >
+                    <button type="button" className="control-item button upload-button" data-title="插入图片">
+                       插入图片
+                    </button>
+                </Upload>
+            )
+        }
+    ];
+    render () {
+        const { editorState } = this.state;
+        return (
+            <div className="my-component">
+                <BraftEditor
+                    value={editorState}
+                    controls={this.editorControls}
+                    style={{border: '1px solid lightgray'}}
+                    onChange={this.handleEditorChange}
+                    onSave={this.submitContent}
+                    extendControls={this.extendControls}
+                />
+            </div>
+        )
+    }
+
+}
+value:编辑器的内容，
+ controls:编辑器的工具栏控件列表
+extendControls:自定义的控件列表
+这里就自定义了一个上传图片的：最终拿到服务器返回的数据。接口为：
+router.post('/upload_life_job', life_job_img_up.single('job_img'), (req, res, next)=>{
+    res.json({
+        status: 1,
+        msg: '图片上传成功',
+        data: {
+            name: '/uploads/images/lifejob/' + req.file.filename
+        }
+    })
+});
+这里就介绍的差不多了，大致思路还是讲清除的。
+
+
+
+
+
+
+
+
+
+
+
+
+

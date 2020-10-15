@@ -1,0 +1,268 @@
+终于到最后一个了：
+首页：
+ render() {
+        return (
+            <div className="home">
+                {/*头部*/}
+                <div className="home-top">
+                    <TopCard
+                        pathLink="/home/common"
+                        iconClassName="icon iconfont icon-hezuohuobanmiyueguanli"
+                        cardMainTitle="通用配置"
+                        cardSubTitle="客户端通用信息配置"
+                        bgColor="red"
+                    />
+                    <TopCard
+                        pathLink="/"
+                        iconClassName="icon iconfont icon-fuwudiqiu"
+                        cardMainTitle="管理员中心"
+                        cardSubTitle="管理员管理"
+                        bgColor="purple"
+                    />
+                    <TopCard
+                        pathLink="/"
+                        iconClassName="icon iconfont icon-shenjing"
+                        cardMainTitle="系统说明"
+                        cardSubTitle="系统使用说明"
+                        bgColor="orange"
+                    />
+                </div>
+                {/*内容*/}
+                <div className="home-content">
+                    <div className="home-content-card">
+                        <SourceCount />
+                    </div>
+                    <div className="home-content-card">
+                        <BuyCount />
+                    </div>
+                </div>
+            </div>
+        )
+    }
+组件top-cart
+class TopCard extends React.Component {
+    static propTypes = {
+        pathLink: PropTypes.string.isRequired,
+        iconClassName: PropTypes.string.isRequired,
+        cardMainTitle: PropTypes.string.isRequired,
+        cardSubTitle: PropTypes.string.isRequired,
+        bgColor: PropTypes.string.isRequired
+    };
+
+    render() {
+        const {pathLink, iconClassName, cardMainTitle, cardSubTitle, bgColor} = this.props;
+        return (
+            <div className="cell" style={{backgroundColor: bgColor}}>
+                <Link to={pathLink} className="cell-content">
+                    <i className={iconClassName}/>
+                    <h4>{cardMainTitle}</h4>
+                    <h5>{cardSubTitle}</h5>
+                </Link>
+            </div>
+        )
+    }
+}
+点击通用配置会跳转到网站的配置信息。
+接着下面就是各版块资源总数量统计：
+ <div className="home-content">
+                    <div className="home-content-card">
+                        <SourceCount />
+                    </div>
+                    <div className="home-content-card">
+                        <BuyCount />
+                    </div>
+                </div>
+
+SourceCount ：
+import React from 'react'
+import {Card} from 'antd'
+import ReactEcharts from 'echarts-for-react'
+
+import {getSourceCount} from './../../../../api/homeApi'
+
+export default class SourceCount extends React.Component{
+
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            data: []
+        }
+    }
+
+    componentDidMount() {
+        this._loadData();
+    }
+
+    _loadData = ()=>{
+         getSourceCount().then((result)=>{
+             console.log(result);
+             let tempData = [];
+             if(result.status === 1){
+                 for (let k in result.data){
+                     tempData.push(result.data[k]);
+                 }
+
+                 // 更新状态机
+                 this.setState({
+                    data: tempData
+                 });
+             }
+             console.log(tempData);
+         });
+    };
+
+
+    getOption = ()=>{
+       return {
+           xAxis: {
+               type: 'category',
+               data: ['幼教', '职场', '活动', '直播']
+           },
+           yAxis: {
+               type: 'value'
+           },
+           series: [{
+               data: this.state.data,
+               type: 'bar'
+           }]
+       }
+    };
+
+    render() {
+        return (
+            <Card title="各版块资源总数量统计">
+                <ReactEcharts option={this.getOption()} />
+            </Card>
+        )
+    }
+}
+就是将每个资源的数量统计出来，这儿用到了import ReactEcharts from 'echarts-for-react'，接口：
+router.get('/source_count', (req, res, next)=>{
+    homeController.getAllSourceCount((result)=>{
+        res.json(result);
+    });
+});
+homeController:
+const Query = require('./../../config/dbHelper');
+
+function ResultTemp(status, msg, data) {
+    return {
+        status,
+        msg,
+        data
+    }
+}
+function getAllSourceCount(callBack) {
+    let sql =  `SELECT t4.resource,t2.job,t1.activities,t3.live FROM (SELECT COUNT(*) activities FROM t_activities) t1,(SELECT COUNT(*) job FROM t_job) t2,(SELECT COUNT(*) live FROM t_live) t3,(SELECT COUNT(*) resource FROM t_resource) t4 `;
+    Query(sql).then((result)=>{
+        callBack(ResultTemp(result.code, '获取数据成功', result.data[0]))
+    }).catch((error)=>{
+        callBack(ResultTemp(error.code, error.msg,error.data))
+    })
+}
+module.exports = {
+  getAllSourceCount
+};
+这儿不做过多的解释，因为本办法也能实现。
+
+BuyCount：
+import React from 'react'
+import {Card} from 'antd'
+import ReactEcharts from 'echarts-for-react'
+import {getBuyCount} from './../../../../api/homeApi'
+
+export default class BuyCount extends React.Component{
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            data: []
+        }
+    }
+
+    componentDidMount() {
+        this._loadData();
+    }
+
+    _loadData = ()=>{
+        getBuyCount().then((result)=>{
+            console.log(result);
+            let tempData = [];
+            if(result.status === 1){
+                for (let k in result.data){
+                    tempData.push(result.data[k]);
+                }
+                // 更新状态机
+                this.setState({
+                    data: tempData
+                });
+            }
+        });
+    };
+
+
+    getOption = ()=>{
+        const {data} = this.state;
+        return {
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b} : {c} ({d}%)'
+            },
+            legend: {
+                orient: 'vertical',
+                left: 'left',
+                data: ['幼教资源', '职场人生', '活动专区', '直播课堂']
+            },
+            series: [
+                {
+                    name: '购买数量',
+                    type: 'pie',
+                    radius: '55%',
+                    center: ['50%', '60%'],
+                    data: [
+                        {value: data[0], name: '幼教资源'},
+                        {value: data[1], name: '职场人生'},
+                        {value: data[2], name: '活动专区'},
+                        {value: data[3], name: '直播课堂'}
+                    ],
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ]
+        }
+    };
+
+    render() {
+        return (
+            <Card title="各业务购买数量统计">
+                <ReactEcharts option={this.getOption()} />
+            </Card>
+        )
+    }
+}
+接口：router.get('/buy_count', (req, res, next)=>{
+    // 1. 查询数据库
+    let sql =  `SELECT t4.resource,t2.job,t1.activities,t3.live FROM (SELECT SUM(t_activities.buy_count) activities FROM t_activities) t1,(SELECT SUM(t_job.buy_count) job FROM t_job) t2,(SELECT SUM(t_live.buy_count) live FROM t_live) t3,(SELECT SUM(t_resource.buy_count) resource FROM t_resource) t4 `;
+    Query(sql).then((result)=>{
+        res.json({
+            status: result.code,
+            msg: '获取数据成功!',
+            data: result.data[0]
+        })
+    }).catch((error)=>{
+        res.json({
+            status: error.code,
+            msg: '获取数据失败!',
+            data: error.data
+        })
+    })
+});
+
+
+

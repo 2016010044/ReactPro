@@ -1,0 +1,406 @@
+1.权限控制
+1）所有后端的界面, 接口都必须要登录之后才可以访问；
+2）没有登录统一跳转到登录的界面
+在这个服务器根目录下创建middleWare/authControl.js:
+module.exports = (req, res, next)=>{
+    // console.log(req.path);
+    // 1. 所有非后端相关的接口
+    if(req.path && req.path.indexOf('/api/auth/') === -1){
+        return next();
+    }
+
+    // 2. 所有后端接口 (登录/注册接口放行)
+    if(
+        req.path.indexOf('/api/auth/admin/login') !== -1 ||
+        req.path.indexOf('/api/auth/admin/reg') !== -1
+    ){
+        return next();
+    }
+
+    // 3. 判断是否处于登录状态
+    if(req.session.token){
+        return  next();
+    }
+
+    // 4. 没有登录 (服务端session中的token失效)
+    // 4.1 如果是后端接口相关
+    if(req.path.indexOf('/api/auth/') !== -1){
+        return res.json({
+            status: 2,
+            msg: '非法访问, 没有权限!'
+        })
+在app.js中引入：
+// 引入全局控制中间件
+const authControl = require('./middleWare/authControl');
+// 使用权限控制中间件
+app.use(authControl);
+2.接着来到设置中心的账户设置修改用户名，密码，头像等：这儿代码太多，一时间不知如何说起。
+ 1）<Card title="管理员信息编辑">
+                <Form
+                    {...formItemLayout}
+                    onFinish={onFinish}
+                    ref={this.formRef}
+                >
+                   {/*账户名*/}
+                    <Form.Item
+                        name="account"
+                        label="账户名"
+                    >
+                        <Input disabled/>
+                    </Form.Item>
+                    {/*管理员名称*/}
+                    <Form.Item
+                        name="account_name"
+                        label="管理员名称"
+                        rules={[{ required: true, message: '请添加您的昵称!' }]}
+                    >
+                        <Input placeholder={"请添加您的昵称"} />
+                    </Form.Item>
+                    {/*管理员头像*/}
+                    <Form.Item
+                        name="account_icon"
+                        label="管理员头像"
+                        valuePropName="fileList"
+                        getValueFromEvent={normFile}
+                    >
+                        <LikeUploadImg upLoadBtnTitle={"上传头像"} upLoadName={"admin_avatar"} upLoadAction={"/api/auth/admin/upload_admin_icon"} upImage={account_icon} successCallBack={(name)=>{
+                            this.setState({
+                                account_icon: name
+                            })
+                        }} />
+                    </Form.Item>
+                    {/*尾部*/}
+                    <Form.Item>
+                        <Button type="primary" htmlType="submit">修改</Button>
+                        &nbsp;&nbsp;&nbsp;或者 &nbsp;&nbsp; <a onClick={()=>this.editPassWord()}>修改密码?</a>
+                    </Form.Item>
+                </Form>
+                <EditPassWord visible={this.state.editPwdPanelShow} hideFunc={this._hideEditPwdPanel} />
+           </Card>
+Cart包裹的就是页面的内容，账户的name必须为account，还有用户名的name必须为account_name,因为在componentDidMount这个钩子中，通过getUser拿到用户信息，然后给account，account_name赋值，在成功后回调，给这两个字段赋值。所以这儿的account和account就有值了。这儿给这两个字段赋值的方式为：
+this.formRef.current.setFieldsValue({
+                account, // 管理员账户名
+                account_name  // 管理员名称q
+            })
+首先在constructor中定义：this.formRef = React.createRef();，接着在form表单中与之对应： ref={this.formRef}，所以给字段赋值的时候会用this.formRef.current.setFieldsValue。
+
+2）重头戏来了哦：就是上传图片。代码这儿就不写了，上面都有。
+上面值得注意的就是这些代码：
+<LikeUploadImg upLoadBtnTitle={"上传头像"} upLoadName={"admin_avatar"} upLoadAction={"/api/auth/admin/upload_admin_icon"} upImage={account_icon} successCallBack={(name)=>{
+                            this.setState({
+                                account_icon: name
+                            })
+                        }} />
+就是上传图片的组件，在它的外卖包裹form.item不必在意，在form表单中就有它的使用，关键来看这个LikeUploadImg，它是一个子组件，先来说说它给子组件传递的参数都是什么意思。upLoadBtnTitle：上传图片的按钮标题，upLoadName: 上传图片的key，upLoadAction: // 上传图片的接口地址（图片都是上传到服务器的），upImage: 默认地址 ，successCallBack：成功回调后就修改当前的上传的图片（这儿还没有修改用户的头像，只是修改了上传图片位置的图片）。
+先来看一下上传图片的接口，看看图片都放到了哪儿：
+const {admin_up} = require('../controller/managerApi/uploadFile');
+router.post('/upload_admin_icon', admin_up.single('admin_avatar'), (req, res, next)=>{
+    res.json({
+        status: 1,
+        msg: '头像上传成功',
+        data: {
+            name: '/uploads/images/admin/' + req.file.filename
+        }
+    })
+});
+uploadFile.js:
+// 添加存储引擎
+const multer = require('multer');
+const path = require('path');
+function createUp(direct_path) {
+    let storage = multer.diskStorage({
+        // 此处是用于设置文件路径
+        destination: function (req, file, cb) {
+            cb(null, direct_path);
+        },
+        // 设置文件名称
+        filename: function (req, file, cb) {
+            // 1. 获取上传图片的后缀名
+            // hello.png --> [hello, png]
+            let fileList = file.originalname.split('.');
+            let ext = fileList[fileList.length - 1];
+
+            // 2. 不重复
+            let times = new Date();
+            times = times.getTime();
+
+            // 3. 合并新文件名
+            let newName = `${times}.${ext}`;
+            cb(null, newName);
+        }
+    });
+    return multer({ storage });
+}
+
+const admin_up = createUp(path.join(__dirname, '../../public/uploads/images/admin'));
+module.exports = {
+    admin_up,
+};
+首先这个接口有一个admin_up.single('admin_avatar')，看这里就用到了admin_avatar即图片的key,这个admin_up是引入的，至于它后边的方法就是传一个key，然后把图片存到某一个位置。这儿请看下面的uploadFile文件，借助了multer存储引擎。使用前先安装。这里面的代码也没什么好解释的，应该能看懂。这儿就是拿到文件，然后通过“.”把文件拆分拿到后缀，接着生成一个时间，把后缀和时间组合，形成新的文件名称存到指定位置。最后在接口中返回给用户一个name,这个name就是文件的绝对路径。接着来到页面看子组件，既然给子组件传了这个参数，在成功后回调改变当前位置的图片。其实上面的这些都是在子组件中完成的。在子组件中接收到这些参数，在子组件中：
+render() {
+        const {upLoadBtnTitle, upLoadName, upLoadAction} = this.props;
+        const { imageUrl } = this.state;
+        console.log(imageUrl);
+
+        const uploadButton = (
+            <div>
+                {this.state.loading ? <LoadingOutlined /> : <PlusOutlined />}
+                <div className="ant-upload-text">{upLoadBtnTitle}</div>
+            </div>
+        );
+        return (
+            <Upload
+                name={upLoadName}
+                listType="picture-card"
+                className="avatar-uploader"
+                showUploadList={false}
+                action={upLoadAction}
+                beforeUpload={beforeUpload}
+                onChange={this.handleChange}
+            >
+                {imageUrl ? <img src={config.BASE_URL + imageUrl} alt="avatar" style={{ width: '100%' }} /> : uploadButton}
+            </Upload>
+        );
+    }
+首先是子组件创建了一个上传图片的按钮，接着使用upload这个组件。这个组件有一些参数，这里的beforeUpload:
+function beforeUpload(file) {
+    const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+    if (!isJpgOrPng) {
+        message.error('上传图片格式不正确!');
+    }
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isLt2M) {
+        message.error('上传图片大小不能超过2MB!');
+    }
+    return isJpgOrPng && isLt2M;
+}
+就是判断图片是否符合要求，接着就是onChange当作用域改变的时候：
+handleChange = info => {
+        if (info.file.status === 'uploading') {
+            this.setState({ loading: true });
+            return;
+        }
+        // 获取服务器返回的数据
+        if(info.file.response && info.file.status === 'done' && info.file.response.status === 1){
+            const name = info.file.response.data.name;
+            // 把结果给调用者返回
+            this.props.successCallBack(name);
+            this.setState({
+                imageUrl: name,
+                loading: false
+            });
+        }
+    };
+先判断是否正处于上传，接着就是返回服务器给的数据。这里定义一个name就是拿到服务器文件存储的绝对路径。imgageUrl的值，接着就是展示图片：
+{imageUrl ? <img src={config.BASE_URL + imageUrl} alt="avatar" style={{ width: '100%' }} /> : uploadButton}，
+这里有一个钩子函数
+componentWillReceiveProps(nextProps, nextContext) {
+        console.log(nextProps);
+        console.log(nextProps.upImage);
+        if(nextProps.upImage){
+            this.setState({
+                imageUrl: nextProps.upImage
+            })
+        }
+    }
+这个钩子函数组件初始化时不调用，组件接受新的props时调用，上传图片到这儿就差不多结束了，多看几遍！！！！
+
+3）接着就是修改了，点击修改按钮：
+ const onFinish = values => {
+            console.log('接收到的数据: ', values);
+            const {token, account_icon} = this.state;
+            // 调用修改管理员信息接口
+            changeAdminMsg(token, values.account_name, account_icon).then((result)=>{
+                if(result && result.status === 1){
+                    console.log(result.data);
+                    // 更新管理员信息
+                    saveUser(result.data);
+                    message.success(result.msg);
+                    // 告知外界管理员信息修改成功
+                    PubSub.publish('changeAdminMsg', {})
+                }
+            }).catch((error)=>{
+                message.error('管理员信息修改失败!')
+            });
+        };
+修改接口：
+router.post('/edit', (req, res, next)=>{
+    const {token, account_name, account_icon} = req.body;
+    // 1. 获取管理员对象
+    const userObj = jwt.verify(token, KEY);
+    const sql = `UPDATE t_admin SET account_name=?, account_icon=? WHERE id = ?; `;
+    const value = [account_name, account_icon, userObj.id];
+
+    // 2. 查询数据库
+    Query(sql, value).then((result)=>{
+        res.json({
+            status: result.code,
+            msg: '管理员信息更新成功!',
+            data: {
+                token,
+                account: userObj.account,
+                account_name,
+                account_icon
+            }
+        })
+    }).catch((error)=>{
+        return next(error);
+    })
+});
+这儿就到用户登录后有了token，存起来接着在修改信息的时候传给接口，接口通过token拿到这个用户对象，然后根据用户id修改用户信息。接着就是返回给客户端新的用户信息，客户端收到后保存到本地，再发布一个消息说我修改信息了，然后左侧组件接受到信息后修改用户名和头像：
+<div className="logo">
+                    <div className="avatar" style={this.props.collapsed ? {width: 40, height: 40} : {}}>
+                        <img src={account_icon ? config.BASE_URL + account_icon : xl} alt=""/>
+                    </div>
+                    <h4>{account_name ? account_name : '撩学堂管理员'}</h4>
+                </div>
+这里的account_name,accont_icon都是从本地取的。
+ account_name: getUser().account_name,
+account_icon: getUser().account_icon
+
+4）修改密码：
+ <a onClick={()=>this.editPassWord()}>修改密码?</a>
+
+editPassWord = ()=>{
+        this.setState({
+            editPwdPanelShow: true
+        })
+    };
+这里就到点击按钮控制editPwdPanelShow的显示和隐藏，
+ <EditPassWord visible={this.state.editPwdPanelShow} hideFunc={this._hideEditPwdPanel} />，点击按钮后就是显示，隐藏：_hideEditPwdPanel = ()=>{
+        this.setState({
+            editPwdPanelShow: false
+        })
+    };
+
+给这个组件传递两个参数，这个组件如下：
+static propTypes = {
+        visible: PropTypes.bool.isRequired,
+        hideFunc: PropTypes.func.isRequired
+    };
+
+    handleOk = e => {
+        console.log(e);
+    };
+
+    handleCancel = e => {
+        console.log(e);
+        this.props.hideFunc();
+    };
+render() {
+        const {visible} = this.props;
+
+        const onFinish = values => {
+            if (values.old_password === values.new_password) {
+                message.warning('新密码和旧密码不能一致!');
+                return;
+            }
+
+            // 密码加密
+            const old_pwd = md5(values.old_password, config.KEY);
+            const new_pwd = md5(values.new_password, config.KEY);
+
+            // 调用接口
+            changeAdminPwd(getUser().token, old_pwd, new_pwd).then((result) => {
+                if (result && result.status === 1) {
+                    message.success(result.msg);
+                    // 清除用户信息
+                    removeUser();
+                    //  路由跳转
+                    this.props.history.replace('/login');
+                } else if (result && result.status === 0) {
+                    message.error(result.msg);
+                }else {
+                    message.error('服务器内部错误!');
+                }
+            }).catch(() => {
+                message.error('修改密码失败!!')
+            });
+        };
+        return (
+            <Modal
+                title="修改密码"
+                visible={visible}
+                onCancel={this.handleCancel}
+                footer={null}
+            >
+                <Form
+                    name="normal_login"
+                    className="login-form"
+                    onFinish={onFinish}
+                    style={{textAlign: 'center'}}
+                >
+                    {/*旧密码*/}
+                    <Form.Item
+                        name="old_password"
+                        rules={[{required: true, message: '请输入旧的密码!'}]}
+                    >
+                        <Input
+                            prefix={<LockOutlined className="site-form-item-icon"/>}
+                            type="password"
+                            placeholder="请输入旧的密码"
+                        />
+                    </Form.Item>
+                    {/*新密码*/}
+                    <Form.Item
+                        name="new_password"
+                        rules={[{required: true, message: '请输入新的密码!'}]}
+                    >
+                        <Input
+                            prefix={<LockOutlined className="site-form-item-icon"/>}
+                            type="password"
+                            placeholder="请输入新的密码"
+                        />
+                    </Form.Item>
+                    <Form.Item>
+                        <Button type="primary" htmlType="submit" className="login-form-button">
+                            修改密码
+                        </Button>
+                    </Form.Item>
+                </Form>
+            </Modal>
+        )
+    }
+接口如下：
+router.post('/reset_pwd', (req, res, next)=>{
+    const {token, old_pwd, new_pwd} = req.body;
+    // 1. 获取管理员对象
+    const userObj = jwt.verify(token, KEY);
+
+    // 2. 判断
+    if(userObj.password !== old_pwd){
+        res.json({
+            status: 0,
+            msg: '原始密码不正确!'
+        });
+    }else {
+        const sql = `UPDATE t_admin SET password=? WHERE id = ?; `;
+        const value = [new_pwd, userObj.id];
+        // 2. 查询数据库
+        Query(sql, value).then((result)=>{
+            req.session.destroy();
+            res.json({
+                status: result.code,
+                msg: '密码修改成功!'
+            })
+        }).catch((error)=>{
+            return next(error);
+        })
+    }
+});
+修改成功后销毁session，然后回跳转到登录页。
+
+
+
+
+
+
+
+
+
+
+    }
+
+    // 4.2 其它情况
+    console.log('other------');
+};
