@@ -120,7 +120,7 @@ console.log(module); //你会看到Module的exports中还是只有name属性！�
 
 
 require和import的理解：
-ES6标准发布后，module成为标准，标准使用是以export指令导出接口，以import引入模块。但是在我们一贯的node模块中，我们依然采用的是CommonJS规范，使用require引入模块，使用module.exports导出接口。
+ES6标准发布后，module成为标准，标准使用是以export指令导出接口，以import引入模块。但是在我们一贯的node模块中，我们依然采用的是CommonJS（CommonJS主要是为了弥补JavaScript没有模块化标准的缺陷）规范，使用require引入模块，使用module.exports导出接口。
 require做什么事情呢，当require的时候，nodejs会到处去找，如果有就return module.exports里的东东。
 二者的区别：
 1）require是运行时加载，在运行的时候才去加载。
